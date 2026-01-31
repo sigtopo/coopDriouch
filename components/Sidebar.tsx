@@ -60,7 +60,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     <aside 
       className={`fixed inset-0 md:relative bg-white border-r border-gray-200 flex flex-col z-[3000] md:z-[2000] shadow-2xl md:shadow-none w-full md:w-80 transition-all`}
     >
-      {/* زر إغلاق القائمة للديسكتوب */}
       <button 
         onClick={() => setOpen(false)}
         className="hidden md:flex absolute -right-8 top-6 p-2 bg-white border border-gray-200 rounded-r-lg shadow-md hover:bg-gray-50 text-gray-500 z-[2001]"
@@ -68,7 +67,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         <ChevronLeft size={20} />
       </button>
 
-      {/* منطقة البحث والفلترة */}
       <div className="p-4 bg-gray-50 border-b border-gray-200 space-y-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -146,7 +144,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      {/* منطقة القائمة */}
       <div className="flex-1 overflow-y-auto custom-scrollbar bg-white">
         {features.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400 text-sm">
@@ -162,20 +159,16 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className={`w-full text-left p-4 hover:bg-gray-50 transition border-l-4 group
                   ${selectedId === f.properties.id ? 'bg-blue-50/50 border-blue-600' : 'border-transparent'}`}
               >
-                {/* اسم التعاونية - عريض وواضح */}
                 <div className="font-extrabold text-gray-900 group-hover:text-blue-900 transition-colors mb-2 text-[13px] leading-tight uppercase">
                   {f.properties['Nom de coopérative'] || f.properties.Nom_Coop || "Coopérative Sans Nom"}
                 </div>
 
-                {/* الجماعة واسم الرئيس - في سطر واحد بخط صغير وغير سميك */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  {/* الجماعة - أحمر غامق */}
                   <div className="flex items-center gap-1.5 text-[10px] text-red-900 font-medium">
                     <MapPin size={11} className="text-red-900 shrink-0" />
                     <span className="truncate uppercase tracking-tight">{f.properties.Commune || "Driouch"}</span>
                   </div>
 
-                  {/* اسم الرئيس - أزرق */}
                   <div className="flex items-center gap-1.5 text-[10px] text-blue-700 font-medium">
                     <User size={11} className="text-blue-700 shrink-0" />
                     <span className="truncate italic">
@@ -189,8 +182,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      <div className="p-3 bg-gray-50 border-t border-gray-200 text-center text-[9px] text-gray-400 font-black uppercase tracking-widest shrink-0">
-        {features.length} Coopératives répertoriées
+      <div className="p-3 bg-gray-50 border-t border-gray-200 text-center text-[10px] text-gray-500 font-bold uppercase tracking-widest shrink-0">
+        Jilit©2026 Agri Invest Development
       </div>
     </aside>
   );

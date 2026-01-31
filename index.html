@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr" dir="ltr">
   <head>
@@ -32,20 +33,29 @@
         background: #555;
       }
 
-      /* Tooltip style - simplified */
-      .coop-label-tooltip {
-        background: white !important;
-        border: 1px solid #e2e8f0 !important;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+      /* Transparent Tooltips with Text Shadow for readability */
+      .coop-label-tooltip, .coop-label-tooltip-persistent {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
         font-weight: 700 !important;
         font-size: 11px !important;
         color: #1e293b !important;
-        padding: 4px 8px !important;
-        border-radius: 6px !important;
+        padding: 0 !important;
+        text-shadow: 0 0 4px white, 0 0 4px white, 0 0 4px white, 0 0 4px white;
         white-space: nowrap !important;
       }
+      .coop-label-tooltip::before, .coop-label-tooltip-persistent::before {
+        display: none !important;
+      }
 
-      /* Popup customization */
+      /* Special Orange color for the selected persistent label */
+      .coop-label-tooltip-persistent {
+        font-size: 12px !important;
+        color: #ea580c !important; /* orange-600 */
+        text-shadow: 0 0 5px white, 0 0 5px white, 0 0 5px white, 0 0 5px white;
+      }
+
       .leaflet-popup-content-wrapper {
         border-radius: 12px;
         padding: 0;
