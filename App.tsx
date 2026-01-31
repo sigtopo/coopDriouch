@@ -4,12 +4,15 @@ import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { 
   Loader2,
-  Menu
+  Menu,
+  BrainCircuit
 } from 'lucide-react';
-import { CooperativeGeoJSON, CooperativeFeature } from './types';
-import Sidebar from './components/Sidebar';
-import DetailPanel from './components/DetailPanel';
-import Header from './components/Header';
+import { CooperativeGeoJSON, CooperativeFeature } from './types.ts';
+import Sidebar from './components/Sidebar.tsx';
+import DetailPanel from './components/DetailPanel.tsx';
+import Header from './components/Header.tsx';
+import StatsOverview from './components/StatsOverview.tsx';
+import AIInsights from './components/AIInsights.tsx';
 
 const GEOJSON_URL = "https://raw.githubusercontent.com/sigtopo/coop_driouch/refs/heads/main/CooperativesDriouch.geojson";
 const COMMUNES_BOUNDS_URL = "https://raw.githubusercontent.com/sigtopo/coop_driouch/refs/heads/main/Communes_Driouch.geojson";
@@ -40,6 +43,7 @@ const App: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [mapLayer, setMapLayer] = useState<'standard' | 'satellite'>('satellite');
+  const [isAIModalOpen, setAIModalOpen] = useState(false);
   
   const [filterCommune, setFilterCommune] = useState("");
   const [filterGenre, setFilterGenre] = useState("");
@@ -57,6 +61,11 @@ const App: React.FC = () => {
 
         if (resCoops.ok) {
           const json = await resCoops.json();
+          // Add unique IDs if missing
+          json.features = json.features.map((f: any, i: number) => ({
+            ...f,
+            properties: { ...f.properties, id: f.properties.id || `coop-${i}` }
+          }));
           setData(json);
         }
 
@@ -97,7 +106,7 @@ const App: React.FC = () => {
     if (!data) return [];
     const searchStr = searchTerm.toLowerCase().trim();
     
-    const filtered = data.features.filter(f => {
+    return data.features.filter(f => {
       const p = f.properties;
       const coopName = (p['Nom de coopérative'] || p.Nom_Coop || "").toLowerCase();
       const presidentName = (p['Nom et prénom président/gestionnaire'] || "").toLowerCase();
@@ -112,9 +121,7 @@ const App: React.FC = () => {
       const matchesNiveau = !filterNiveau || p["Niveau scolaire"] === filterNiveau;
       
       return matchesSearch && matchesCommune && matchesGenre && matchesSecteur && matchesNiveau;
-    });
-
-    return filtered.sort((a, b) => {
+    }).sort((a, b) => {
       const nameA = (a.properties['Nom de coopérative'] || a.properties.Nom_Coop || "").toLowerCase();
       const nameB = (b.properties['Nom de coopérative'] || b.properties.Nom_Coop || "").toLowerCase();
       return nameA.localeCompare(nameB, 'fr');
@@ -159,8 +166,6 @@ const App: React.FC = () => {
 
   const onEachFeature = (feature: CooperativeFeature, layer: L.Layer) => {
     const name = feature.properties['Nom de coopérative'] || feature.properties.Nom_Coop || "Coop";
-    
-    // Labels only on hover (non-permanent)
     layer.bindTooltip(name, {
       permanent: false,
       direction: 'top',
@@ -169,7 +174,6 @@ const App: React.FC = () => {
       opacity: 0.9,
       sticky: true
     });
-
     layer.on({
       click: (e) => {
         L.DomEvent.stopPropagation(e);
@@ -236,12 +240,7 @@ const App: React.FC = () => {
               <GeoJSON 
                 data={provinceBounds} 
                 interactive={false}
-                style={{
-                  color: "#ff0000",
-                  weight: 6,
-                  fillOpacity: 0,
-                  dashArray: ""
-                }}
+                style={{ color: "#ff0000", weight: 4, fillOpacity: 0 }}
               />
             )}
 
@@ -249,12 +248,7 @@ const App: React.FC = () => {
               <GeoJSON 
                 data={communesBounds} 
                 interactive={false}
-                style={{
-                  color: "#94a3b8",
-                  weight: 1,
-                  fillOpacity: 0.02,
-                  fillColor: "#94a3b8"
-                }}
+                style={{ color: "#94a3b8", weight: 1, fillOpacity: 0.02 }}
               />
             )}
 
@@ -266,8 +260,6 @@ const App: React.FC = () => {
                 pointToLayer={(feature, latlng) => {
                   const isSelected = selectedCoop?.properties.id === feature.properties.id;
                   const marker = L.marker(latlng, { icon: createCustomIcon(isSelected) });
-                  
-                  // Permanent label ONLY when selected
                   if (isSelected) {
                     marker.on('add', () => {
                       marker.bindTooltip(feature.properties['Nom de coopérative'] || feature.properties.Nom_Coop, {
@@ -278,13 +270,24 @@ const App: React.FC = () => {
                       }).openTooltip();
                     });
                   }
-                  
                   return marker;
                 }}
               />
             )}
             <MapFlyTo feature={selectedCoop} />
           </MapContainer>
+
+          {/* Floating UI Elements */}
+          <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-3 pointer-events-none">
+            {data && <StatsOverview data={{ type: "FeatureCollection", features: filteredFeatures } as any} />}
+            <button 
+              onClick={() => setAIModalOpen(true)}
+              className="pointer-events-auto flex items-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl hover:bg-indigo-700 transition-all hover:scale-105 active:scale-95 group"
+            >
+              <BrainCircuit size={20} className="group-hover:animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-wider">Analyse IA</span>
+            </button>
+          </div>
 
           <DetailPanel 
             selectedCoop={selectedCoop} 
@@ -296,13 +299,19 @@ const App: React.FC = () => {
           {!isSidebarOpen && (
             <button 
               onClick={() => setSidebarOpen(true)}
-              className="hidden md:flex absolute top-4 left-4 z-[1000] p-3 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 text-blue-700 transition-transform hover:scale-110"
+              className="hidden md:flex absolute top-4 left-4 z-[1000] p-3 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 text-blue-700"
             >
               <Menu size={24} />
             </button>
           )}
         </main>
       </div>
+
+      <AIInsights 
+        isOpen={isAIModalOpen} 
+        onClose={() => setAIModalOpen(false)} 
+        data={filteredFeatures}
+      />
     </div>
   );
 };
