@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { 
   Loader2,
-  Menu
+  Menu,
+  Home
 } from 'lucide-react';
 import { CooperativeGeoJSON, CooperativeFeature } from './types.ts';
 import Sidebar from './components/Sidebar.tsx';
@@ -21,14 +22,44 @@ const LAYERS = {
   satellite: "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
 };
 
-const MapFlyTo: React.FC<{ feature: CooperativeFeature | null }> = ({ feature }) => {
+const MapController: React.FC<{ 
+  selectedCoop: CooperativeFeature | null; 
+  provinceBounds: any;
+  isSidebarOpen: boolean;
+  resetTrigger: number;
+}> = ({ selectedCoop, provinceBounds, isSidebarOpen, resetTrigger }) => {
   const map = useMap();
+  const hasInitiallyFit = useRef(false);
+
   useEffect(() => {
-    if (feature && feature.geometry.type === 'Point') {
-      const [lng, lat] = feature.geometry.coordinates;
-      map.flyTo([lat, lng], 16, { duration: 1.2, easeLinearity: 0.25 });
+    setTimeout(() => {
+      map.invalidateSize({ animate: true });
+    }, 300);
+  }, [isSidebarOpen, map]);
+
+  // الضبط الأولي (Home View) عند توفر البيانات أو الضغط على زر Home
+  useEffect(() => {
+    if (provinceBounds) {
+      const geoJsonLayer = L.geoJSON(provinceBounds);
+      const bounds = geoJsonLayer.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [20, 20], animate: resetTrigger > 0 });
+        hasInitiallyFit.current = true;
+      }
     }
-  }, [feature, map]);
+  }, [provinceBounds, map, resetTrigger]);
+
+  useEffect(() => {
+    if (selectedCoop && selectedCoop.geometry.type === 'Point') {
+      const [lng, lat] = selectedCoop.geometry.coordinates;
+      const offset = window.innerWidth < 768 ? 0.005 : 0.002;
+      map.flyTo([lat - offset, lng], 16, {
+        duration: 1.2,
+        easeLinearity: 0.25
+      });
+    }
+  }, [selectedCoop, map]);
+
   return null;
 };
 
@@ -42,6 +73,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [mapLayer, setMapLayer] = useState<'standard' | 'satellite'>('satellite');
   const [isAIModalOpen, setAIModalOpen] = useState(false);
+  const [resetTrigger, setResetTrigger] = useState(0);
   
   const [filterCommune, setFilterCommune] = useState("");
   const [filterGenre, setFilterGenre] = useState("");
@@ -59,7 +91,6 @@ const App: React.FC = () => {
 
         if (resCoops.ok) {
           const json = await resCoops.json();
-          // Add unique IDs if missing
           json.features = json.features.map((f: any, i: number) => ({
             ...f,
             properties: { ...f.properties, id: f.properties.id || `coop-${i}` }
@@ -78,6 +109,11 @@ const App: React.FC = () => {
     };
     fetchData();
   }, []);
+
+  const handleHomeClick = () => {
+    setSelectedCoop(null);
+    setResetTrigger(prev => prev + 1);
+  };
 
   const filterOptions = useMemo(() => {
     if (!data) return { communes: [], genres: [], secteurs: [], niveaux: [] };
@@ -126,25 +162,25 @@ const App: React.FC = () => {
     });
   }, [data, searchTerm, filterCommune, filterGenre, filterSecteur, filterNiveau]);
 
-  const createCustomIcon = (isSelected: boolean) => {
+  const createCustomIcon = useCallback((isSelected: boolean) => {
     if (isSelected) {
       return L.divIcon({
         className: 'custom-div-icon-selected',
         html: `
           <div class="flex items-center justify-center">
             <div class="relative">
-              <div class="absolute inset-0 w-8 h-8 -mt-1.5 -ml-1.5 bg-orange-500/40 rounded-full animate-ping"></div>
+              <div class="absolute inset-0 w-10 h-10 -mt-3 -ml-3 bg-slate-900/20 rounded-full animate-ping"></div>
               <div class="relative flex flex-col items-center">
-                <div class="w-6 h-6 rounded-full bg-orange-600 border-2 border-white shadow-lg flex items-center justify-center z-20">
-                  <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                <div class="w-9 h-9 rounded-full bg-[#1e293b] border-2 border-white shadow-2xl flex items-center justify-center z-20">
+                  <div class="w-2.5 h-2.5 rounded-full bg-white"></div>
                 </div>
-                <div class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-orange-600 -mt-1.5 z-10"></div>
+                <div class="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[12px] border-t-[#1e293b] -mt-2.5 z-10"></div>
               </div>
             </div>
           </div>
         `,
-        iconSize: [32, 40],
-        iconAnchor: [16, 32]
+        iconSize: [40, 50],
+        iconAnchor: [20, 48]
       });
     }
 
@@ -152,22 +188,22 @@ const App: React.FC = () => {
       className: 'custom-div-icon',
       html: `
         <div class="flex items-center justify-center">
-          <div class="w-3.5 h-3.5 rounded-full bg-white border-2 border-blue-500 shadow-sm flex items-center justify-center hover:scale-110 transition-transform">
-            <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+          <div class="w-5 h-5 rounded-full bg-white border-2 border-slate-700 shadow-lg flex items-center justify-center hover:scale-125 transition-all duration-300">
+            <div class="w-2 h-2 rounded-full bg-slate-700"></div>
           </div>
         </div>
       `,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
     });
-  };
+  }, []);
 
-  const onEachFeature = (feature: CooperativeFeature, layer: L.Layer) => {
+  const onEachFeature = useCallback((feature: CooperativeFeature, layer: L.Layer) => {
     const name = feature.properties['Nom de coopérative'] || feature.properties.Nom_Coop || "Coop";
     layer.bindTooltip(name, {
       permanent: false,
       direction: 'top',
-      offset: [0, -15],
+      offset: [0, -10],
       className: 'coop-label-tooltip',
       opacity: 0.9,
       sticky: true
@@ -179,19 +215,19 @@ const App: React.FC = () => {
         if (window.innerWidth < 768) setSidebarOpen(false);
       }
     });
-  };
+  }, []);
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-white text-blue-800">
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-white text-slate-800">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
-        <h2 className="text-xl font-bold font-sans tracking-tight">Chargement des données...</h2>
+        <h2 className="text-xl font-bold tracking-tight">Chargement du portail...</h2>
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden font-sans bg-white">
+    <div className="h-screen w-screen flex flex-col overflow-hidden font-sans bg-white text-slate-900">
       <Header 
         onMenuClick={() => setSidebarOpen(true)} 
         mapLayer={mapLayer}
@@ -225,20 +261,26 @@ const App: React.FC = () => {
           <MapContainer 
             center={[34.98, -3.38]} 
             zoom={10} 
-            className="h-full w-full"
+            className="h-full w-full bg-slate-100"
             zoomControl={false}
+            preferCanvas={true}
+            scrollWheelZoom={true}
+            dragging={true}
+            closePopupOnClick={false}
+            attributionControl={false}
           >
             <TileLayer
               key={mapLayer}
-              attribution={mapLayer === 'standard' ? '&copy; OpenStreetMap' : '&copy; Google Maps'}
               url={LAYERS[mapLayer]}
+              updateWhenIdle={true}
+              keepBuffer={4}
             />
 
             {provinceBounds && (
               <GeoJSON 
                 data={provinceBounds} 
                 interactive={false}
-                style={{ color: "#ff0000", weight: 4, fillOpacity: 0 }}
+                style={{ color: "#334155", weight: 3, fillOpacity: 0, dashArray: '8, 8' }}
               />
             )}
 
@@ -246,24 +288,29 @@ const App: React.FC = () => {
               <GeoJSON 
                 data={communesBounds} 
                 interactive={false}
-                style={{ color: "#94a3b8", weight: 1, fillOpacity: 0.02 }}
+                style={{ color: "#cbd5e1", weight: 1, fillOpacity: 0.01 }}
               />
             )}
 
             {filteredFeatures.length > 0 && (
               <GeoJSON 
-                key={JSON.stringify(filteredFeatures.length + (selectedCoop?.properties?.id || '') + mapLayer)}
+                key={`data-${filteredFeatures.length}-${mapLayer}`}
                 data={{ type: "FeatureCollection", features: filteredFeatures } as any} 
                 onEachFeature={onEachFeature}
                 pointToLayer={(feature, latlng) => {
                   const isSelected = selectedCoop?.properties.id === feature.properties.id;
-                  const marker = L.marker(latlng, { icon: createCustomIcon(isSelected) });
+                  const marker = L.marker(latlng, { 
+                    icon: createCustomIcon(isSelected),
+                    riseOnHover: true,
+                    zIndexOffset: isSelected ? 1000 : 0
+                  });
+                  
                   if (isSelected) {
                     marker.on('add', () => {
                       marker.bindTooltip(feature.properties['Nom de coopérative'] || feature.properties.Nom_Coop, {
                         permanent: true,
                         direction: 'top',
-                        offset: [0, -35],
+                        offset: [0, -45],
                         className: 'coop-label-tooltip-persistent'
                       }).openTooltip();
                     });
@@ -272,7 +319,13 @@ const App: React.FC = () => {
                 }}
               />
             )}
-            <MapFlyTo feature={selectedCoop} />
+            
+            <MapController 
+              selectedCoop={selectedCoop} 
+              provinceBounds={provinceBounds} 
+              isSidebarOpen={isSidebarOpen}
+              resetTrigger={resetTrigger}
+            />
           </MapContainer>
 
           <DetailPanel 
@@ -282,14 +335,25 @@ const App: React.FC = () => {
             onClose={() => setSelectedCoop(null)} 
           />
 
-          {!isSidebarOpen && (
+          <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-3">
+            {!isSidebarOpen && (
+              <button 
+                onClick={() => setSidebarOpen(true)}
+                className="hidden md:flex p-3 bg-white rounded-xl shadow-lg border border-slate-200 hover:bg-slate-50 text-slate-700 transition-all active:scale-95 group"
+                title="Ouvrir le menu"
+              >
+                <Menu size={22} className="group-hover:rotate-90 transition-transform duration-300" />
+              </button>
+            )}
+
             <button 
-              onClick={() => setSidebarOpen(true)}
-              className="hidden md:flex absolute top-4 left-4 z-[1000] p-3 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 text-blue-700"
+              onClick={handleHomeClick}
+              className="p-3 bg-white rounded-xl shadow-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all active:scale-95 group"
+              title="Vue d'ensemble (Home)"
             >
-              <Menu size={24} />
+              <Home size={22} className="group-hover:scale-110 transition-transform" />
             </button>
-          )}
+          </div>
         </main>
       </div>
 
