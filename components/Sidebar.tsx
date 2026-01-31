@@ -74,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Rechercher une coopérative..."
+              placeholder="Nom ou Président..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 bg-white shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -164,7 +164,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   ${selectedId === f.properties.id ? 'bg-green-50 border-green-700' : 'border-transparent'}`}
               >
                 <div className="font-extrabold text-gray-900 group-hover:text-green-800 transition-colors mb-1 text-sm leading-snug">
-                  {f.properties['Nom de coopérative'] || "Coopérative Sans Nom"}
+                  {f.properties['Nom de coopérative'] || f.properties.Nom_Coop || "Coopérative Sans Nom"}
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-gray-500 font-bold tracking-tight">
                   <MapPin size={10} className="text-green-600 shrink-0" />
@@ -172,6 +172,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <span className="text-gray-300">•</span>
                   <span className="text-green-700 whitespace-nowrap">{f.properties["Filière d'activité"] || "Activités"}</span>
                 </div>
+                {searchTerm && (p => {
+                  const president = p['Nom et prénom président/gestionnaire'];
+                  if (president && president.toLowerCase().includes(searchTerm.toLowerCase())) {
+                    return <div className="mt-1 text-[10px] text-gray-400 font-medium italic">Par: {president}</div>;
+                  }
+                  return null;
+                })(f.properties)}
               </button>
             ))}
           </div>

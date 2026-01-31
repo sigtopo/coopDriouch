@@ -81,16 +81,27 @@ const App: React.FC = () => {
 
   const filteredFeatures = useMemo(() => {
     if (!data) return [];
+    const searchStr = searchTerm.toLowerCase().trim();
+    
     const filtered = data.features.filter(f => {
       const p = f.properties;
-      const searchStr = searchTerm.toLowerCase();
-      const matchesSearch = Object.values(p).some(val => String(val).toLowerCase().includes(searchStr));
+      
+      // منطق البحث المخصص: اسم التعاونية أو اسم الرئيس
+      const coopName = (p['Nom de coopérative'] || p.Nom_Coop || "").toLowerCase();
+      const presidentName = (p['Nom et prénom président/gestionnaire'] || "").toLowerCase();
+      
+      const matchesSearch = !searchStr || 
+        coopName.includes(searchStr) || 
+        presidentName.includes(searchStr);
+
       const matchesCommune = !filterCommune || p.Commune === filterCommune;
       const matchesGenre = !filterGenre || p.Genre === filterGenre;
       const matchesSecteur = !filterSecteur || p["Filière d'activité"] === filterSecteur;
       const matchesNiveau = !filterNiveau || p["Niveau scolaire"] === filterNiveau;
+      
       return matchesSearch && matchesCommune && matchesGenre && matchesSecteur && matchesNiveau;
     });
+
     return filtered.sort((a, b) => {
       const nameA = (a.properties['Nom de coopérative'] || a.properties.Nom_Coop || "").toLowerCase();
       const nameB = (b.properties['Nom de coopérative'] || b.properties.Nom_Coop || "").toLowerCase();
