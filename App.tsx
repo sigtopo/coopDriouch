@@ -23,6 +23,9 @@ const LAYERS = {
   satellite: "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
 };
 
+// مركز تقريبي لإقليم الدريوش كبداية سريعة قبل تحميل الحدود
+const DRIOUCH_CENTER: [number, number] = [35.0, -3.4];
+
 const MapController: React.FC<{ 
   selectedCoop: CooperativeFeature | null; 
   provinceBounds: any;
@@ -52,15 +55,19 @@ const MapController: React.FC<{
     }
 
     if (targetBounds && targetBounds.isValid()) {
+      // إذا كانت المرة الأولى، نقوم بالقفز مباشرة بدون أنيميشن ليظهر الإقليم فوراً
+      const isFirstTime = !hasInitiallyFit.current;
+      
       map.fitBounds(targetBounds, { 
-        padding: window.innerWidth < 768 ? [40, 40] : [80, 80], 
-        animate: hasInitiallyFit.current,
-        duration: 1.5
+        padding: window.innerWidth < 768 ? [30, 30] : [70, 70], 
+        animate: !isFirstTime,
+        duration: isFirstTime ? 0 : 1.5
       });
       hasInitiallyFit.current = true;
     }
   }, [provinceBounds, data, map]);
 
+  // VUE HOME: تفعيل المنظور الشامل للإقليم عند البداية أو عند إعادة التعيين
   useEffect(() => {
     if (!selectedCoop) {
       fitToHome();
@@ -297,7 +304,7 @@ const App: React.FC = () => {
 
         <main className="flex-1 relative h-full">
           <MapContainer 
-            center={[34.98, -3.38]} 
+            center={DRIOUCH_CENTER} 
             zoom={10} 
             className="h-full w-full bg-slate-100"
             zoomControl={false}
