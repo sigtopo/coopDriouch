@@ -3,33 +3,23 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { 
-  Map as MapIcon, 
-  Loader2
+  Menu,
+  Loader2,
+  Sprout
 } from 'lucide-react';
 import { CooperativeGeoJSON, CooperativeFeature } from './types';
 import Sidebar from './components/Sidebar';
 import DetailPanel from './components/DetailPanel';
 
-// Fix for default Leaflet marker icons
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
 const GEOJSON_URL = "https://raw.githubusercontent.com/sigtopo/coop_driouch/refs/heads/main/CooperativesDriouch.geojson";
 
+// Composant pour recentrer la carte sur la coopérative sélectionnée
 const MapFlyTo: React.FC<{ feature: CooperativeFeature | null }> = ({ feature }) => {
   const map = useMap();
   useEffect(() => {
     if (feature && feature.geometry.type === 'Point') {
       const [lng, lat] = feature.geometry.coordinates;
-      map.flyTo([lat, lng], 15, { duration: 1.5 });
-    } else if (feature && (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon')) {
-      const layer = L.geoJSON(feature as any);
-      map.fitBounds(layer.getBounds(), { padding: [50, 50], duration: 1.5 });
+      map.flyTo([lat, lng], 16, { duration: 1.2, easeLinearity: 0.25 });
     }
   }, [feature, map]);
   return null;
@@ -41,9 +31,8 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedCoop, setSelectedCoop] = useState<CooperativeFeature | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isSidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   
-  // Nouveaux filtres
   const [filterCommune, setFilterCommune] = useState("");
   const [filterGenre, setFilterGenre] = useState("");
   const [filterSecteur, setFilterSecteur] = useState("");
@@ -65,15 +54,12 @@ const App: React.FC = () => {
     fetchData();
   }, []);
 
-  // Extraire les options uniques pour les filtres
   const filterOptions = useMemo(() => {
     if (!data) return { communes: [], genres: [], secteurs: [], niveaux: [] };
-    
     const communes = new Set<string>();
     const genres = new Set<string>();
     const secteurs = new Set<string>();
     const niveaux = new Set<string>();
-
     data.features.forEach(f => {
       const p = f.properties;
       if (p.Commune) communes.add(p.Commune);
@@ -81,7 +67,6 @@ const App: React.FC = () => {
       if (p["Filière d'activité"]) secteurs.add(p["Filière d'activité"]);
       if (p["Niveau scolaire"]) niveaux.add(p["Niveau scolaire"]);
     });
-
     return {
       communes: Array.from(communes).sort(),
       genres: Array.from(genres).sort(),
@@ -94,30 +79,35 @@ const App: React.FC = () => {
     if (!data) return [];
     return data.features.filter(f => {
       const p = f.properties;
-      
-      // Recherche textuelle
       const searchStr = searchTerm.toLowerCase();
       const matchesSearch = Object.values(p).some(val => 
         String(val).toLowerCase().includes(searchStr)
       );
-
-      // Filtres sélectifs
       const matchesCommune = !filterCommune || p.Commune === filterCommune;
       const matchesGenre = !filterGenre || p.Genre === filterGenre;
       const matchesSecteur = !filterSecteur || p["Filière d'activité"] === filterSecteur;
       const matchesNiveau = !filterNiveau || p["Niveau scolaire"] === filterNiveau;
-
       return matchesSearch && matchesCommune && matchesGenre && matchesSecteur && matchesNiveau;
     });
   }, [data, searchTerm, filterCommune, filterGenre, filterSecteur, filterNiveau]);
 
-  const geoJsonStyle = {
-    fillColor: '#16a34a',
-    weight: 2,
-    opacity: 1,
-    color: '#16a34a',
-    dashArray: '3',
-    fillOpacity: 0.4
+  // Style des marqueurs personnalisés avec texte
+  const createCustomIcon = (name: string, isSelected: boolean) => {
+    return L.divIcon({
+      className: 'custom-div-icon',
+      html: `
+        <div class="flex items-center gap-1 group">
+          <div class="flex items-center justify-center w-6 h-6 bg-white border-2 ${isSelected ? 'border-orange-500 scale-125' : 'border-green-600'} rounded-full shadow-md transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? '#f97316' : '#16a34a'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m12 10 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 1 1 1v2H6v-2a1 1 0 0 1 1-1h2a1 1 0 0 0 1-1v-3l2-4Z"/><path d="M7 2h10"/><path d="M12 2v5"/><path d="M9 4v2"/><path d="M15 4v2"/></svg>
+          </div>
+          <div class="bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded border border-gray-200 shadow-sm text-[10px] font-bold text-gray-800 whitespace-nowrap hidden group-hover:block ${isSelected ? 'block !bg-orange-50 !border-orange-200' : ''}">
+            ${name}
+          </div>
+        </div>
+      `,
+      iconSize: [30, 30],
+      iconAnchor: [12, 12]
+    });
   };
 
   const onEachFeature = (feature: CooperativeFeature, layer: L.Layer) => {
@@ -125,23 +115,7 @@ const App: React.FC = () => {
       click: (e) => {
         L.DomEvent.stopPropagation(e);
         setSelectedCoop(feature);
-      },
-      mouseover: (e) => {
-        const target = e.target;
-        if (target.setStyle) {
-          target.setStyle({
-            weight: 5,
-            color: '#22c55e',
-            dashArray: '',
-            fillOpacity: 0.7
-          });
-        }
-      },
-      mouseout: (e) => {
-        const target = e.target;
-        if (target.setStyle) {
-          target.setStyle(geoJsonStyle);
-        }
+        if (window.innerWidth < 768) setSidebarOpen(false);
       }
     });
   };
@@ -150,30 +124,22 @@ const App: React.FC = () => {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-green-50 text-green-800">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
-        <h2 className="text-2xl font-bold font-sans">Chargement de la carte...</h2>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-red-50 text-red-800 p-4">
-        <div className="text-center font-sans">
-          <h2 className="text-3xl font-bold mb-2">Erreur</h2>
-          <p className="text-lg">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-          >
-            Actualiser
-          </button>
-        </div>
+        <h2 className="text-2xl font-bold font-sans">Chargement des données...</h2>
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden font-sans">
+    <div className="h-screen w-screen flex flex-col md:flex-row overflow-hidden font-sans bg-white">
+      {/* Mobile Top Bar */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-green-800 text-white z-[2001] shadow-md shrink-0">
+        <button onClick={() => setSidebarOpen(true)} className="p-2 -ml-2">
+          <Menu size={24} />
+        </button>
+        <span className="font-bold tracking-tight">DRIOUCH COOPS</span>
+        <div className="w-8"></div>
+      </div>
+
       <Sidebar 
         isOpen={isSidebarOpen} 
         setOpen={setSidebarOpen}
@@ -181,8 +147,10 @@ const App: React.FC = () => {
         setSearchTerm={setSearchTerm}
         features={filteredFeatures}
         selectedId={selectedCoop?.properties.id}
-        onSelect={(f) => setSelectedCoop(f)}
-        // Props des filtres
+        onSelect={(f) => {
+          setSelectedCoop(f);
+          if (window.innerWidth < 768) setSidebarOpen(false);
+        }}
         filterCommune={filterCommune}
         setFilterCommune={setFilterCommune}
         filterGenre={filterGenre}
@@ -194,7 +162,7 @@ const App: React.FC = () => {
         options={filterOptions}
       />
 
-      <main className="flex-1 relative">
+      <main className="flex-1 relative h-full">
         <MapContainer 
           center={[34.98, -3.38]} 
           zoom={10} 
@@ -202,17 +170,19 @@ const App: React.FC = () => {
           zoomControl={false}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            attribution='&copy; OpenStreetMap'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {filteredFeatures.length > 0 && (
             <GeoJSON 
-              key={JSON.stringify(filteredFeatures.length + filterCommune + filterGenre + filterSecteur + filterNiveau)}
+              key={JSON.stringify(filteredFeatures.length + filterCommune + filterGenre + filterSecteur + filterNiveau + (selectedCoop?.properties?.id || ''))}
               data={{ type: "FeatureCollection", features: filteredFeatures } as any} 
               onEachFeature={onEachFeature}
-              style={geoJsonStyle}
               pointToLayer={(feature, latlng) => {
-                return L.marker(latlng);
+                const name = feature.properties['Nom de coopérative'] || feature.properties.Nom_Coop || "Coop";
+                const isSelected = selectedCoop?.properties.id === feature.properties.id || 
+                                   selectedCoop?.properties['Nom de coopérative'] === feature.properties['Nom de coopérative'];
+                return L.marker(latlng, { icon: createCustomIcon(name, isSelected) });
               }}
             />
           )}
@@ -229,9 +199,9 @@ const App: React.FC = () => {
         {!isSidebarOpen && (
           <button 
             onClick={() => setSidebarOpen(true)}
-            className="absolute top-4 left-4 z-[1000] p-3 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 text-green-600"
+            className="hidden md:flex absolute top-4 left-4 z-[1000] p-3 bg-white rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 text-green-700 items-center justify-center transition-transform hover:scale-110"
           >
-            <MapIcon size={24} />
+            <Menu size={24} />
           </button>
         )}
       </main>
