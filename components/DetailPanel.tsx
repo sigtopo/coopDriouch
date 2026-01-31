@@ -10,14 +10,7 @@ import {
   ChevronUp,
   ChevronDown,
   Globe,
-  CheckCircle2,
-  Calendar,
-  Briefcase,
-  GraduationCap,
-  Users,
-  Wallet,
-  Venus,
-  Baby
+  CheckCircle2
 } from 'lucide-react';
 import { CooperativeFeature } from '../types.ts';
 
@@ -98,6 +91,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ selectedCoop, allCoops, onSel
     if (selectedCoop) {
       setIsSearchOpen(false);
       setShowSuggestions(false);
+      setIsExpanded(true); 
     }
   }, [selectedCoop]);
 
@@ -136,14 +130,13 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ selectedCoop, allCoops, onSel
     );
   }
 
-  // Data mapping from properties
   const coopName = p?.['Nom de coopérative'] || p?.Nom_Coop;
-  const commune = p?.Commune;
-  const sector = p?.["Filière d'activité"];
+  const commune = p?.Commune || "---";
+  const sector = p?.["Filière d'activité"] || p?.Secteur || "---";
   const douar = p?.['Douar/Quartier'] || p?.Quartier || "---";
   const dateCreation = p?.['Date de création'] || "---";
-  const president = p?.['Nom et prénom président/gestionnaire'];
-  const phone = p?.['N° téléphone'];
+  const president = p?.['Nom et prénom président/gestionnaire'] || "Non renseigné";
+  const phone = p?.['N° téléphone'] || p?.['Téléphone'] || p?.['Telephone'] || p?.['Tel'] || null;
   const birthDate = p?.['Date de naissance'] || "---";
   const schoolLevel = p?.['Niveau scolaire'] || "---";
   
@@ -162,10 +155,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ selectedCoop, allCoops, onSel
         className={`bg-white w-full max-w-2xl shadow-2xl pointer-events-auto transition-all flex flex-col border border-slate-200
           ${isExpanded ? 'rounded-t-[2.5rem] h-full' : 'rounded-t-[2.5rem] h-auto mb-0 md:mb-2 md:rounded-[2.5rem]'} ${isDragging ? 'duration-0 scale-[1.01]' : ''}`}
       >
-        <div 
-          className="flex flex-col items-center py-3 cursor-grab active:cursor-grabbing shrink-0"
-          onMouseDown={onMouseDown}
-        >
+        <div className="flex flex-col items-center py-3 cursor-grab active:cursor-grabbing shrink-0" onMouseDown={onMouseDown}>
           <div className="w-14 h-1.5 bg-slate-200 rounded-full"></div>
         </div>
 
@@ -192,13 +182,13 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ selectedCoop, allCoops, onSel
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-green-50 text-green-600 rounded-lg">
-                       <Building2 size={22} />
+                       <Building2 size={24} />
                     </div>
-                    <h3 className="text-lg md:text-xl font-black text-slate-800 leading-tight uppercase">
+                    <h3 className="text-lg md:text-xl font-black text-slate-800 leading-tight uppercase text-wrap">
                       {coopName}
                     </h3>
                   </div>
-                  <div className="flex items-center gap-3 pl-11">
+                  <div className="flex items-center gap-2 pl-12 flex-wrap">
                     <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
                       {commune}
                     </span>
@@ -222,78 +212,50 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ selectedCoop, allCoops, onSel
               <button onClick={closeEverything} className="p-2.5 bg-slate-100 text-slate-500 rounded-full border border-slate-200 hover:bg-slate-200 shadow-sm"><X size={22} /></button>
             </div>
           </div>
-
-          {isSearchOpen && showSuggestions && suggestions.length > 0 && (
-            <div className="absolute bottom-full mb-4 left-6 right-6 bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden z-[5000] pointer-events-auto animate-in fade-in slide-in-from-bottom-6">
-              {suggestions.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    onSelect(s);
-                    setLocalSearch("");
-                    setShowSuggestions(false);
-                    setIsSearchOpen(false);
-                  }}
-                  className="w-full text-left p-5 hover:bg-green-50 transition-colors flex flex-col border-b border-slate-50 last:border-0"
-                >
-                  <span className="text-sm font-black text-slate-800 truncate uppercase">
-                    {s.properties['Nom de coopérative'] || s.properties.Nom_Coop}
-                  </span>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className="text-[10px] text-green-700 font-black uppercase bg-green-50 px-2 rounded-md border border-green-100">
-                      {s.properties.Commune}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {selectedCoop && (
-          <div className={`overflow-y-auto custom-scrollbar px-6 pb-8 space-y-8 transition-all duration-500 ${isExpanded ? 'opacity-100 flex-1' : 'h-0 opacity-0 pointer-events-none'}`}>
+          <div className={`overflow-y-auto custom-scrollbar px-6 pb-10 space-y-8 transition-all duration-500 ${isExpanded ? 'opacity-100 flex-1' : 'h-0 opacity-0 pointer-events-none'}`}>
             
-            {/* 1. Identification Administrative */}
             <section className="space-y-4">
               <div className="flex items-center gap-3 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 <Globe size={16} className="text-green-600" />
                 <span>Identification Administrative</span>
                 <div className="flex-1 h-px bg-slate-100"></div>
               </div>
-              <div className="grid grid-cols-2 gap-4 bg-slate-50/50 p-5 rounded-[2rem] border border-slate-100">
+              <div className="grid grid-cols-2 gap-4 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Commune</label>
-                  <p className="text-sm font-black text-slate-700">{commune}</p>
+                  <p className="text-sm font-black text-slate-800">{commune}</p>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Douar / Quartier</label>
-                  <p className="text-sm font-black text-slate-700">{douar}</p>
+                  <p className="text-sm font-black text-slate-800">{douar}</p>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Filière</label>
-                  <p className="text-sm font-black text-slate-700 uppercase">{sector}</p>
+                  <p className="text-sm font-black text-slate-800 uppercase">{sector}</p>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Date Création</label>
-                  <p className="text-sm font-black text-slate-700">{dateCreation}</p>
+                  <p className="text-sm font-black text-slate-800">{dateCreation}</p>
                 </div>
               </div>
             </section>
 
-            {/* 2. Profil du Dirigeant */}
             <section className="space-y-4">
               <div className="flex items-center gap-3 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 <User size={16} className="text-green-600" />
                 <span>Profil du Dirigeant</span>
                 <div className="flex-1 h-px bg-slate-100"></div>
               </div>
-              <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+              <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-5">
                 <div>
-                  <h4 className="text-lg font-black text-slate-800">{president || "Non renseigné"}</h4>
+                  <h4 className="text-lg font-black text-slate-800">{president}</h4>
                   {phone && (
                     <div className="flex items-center gap-2 mt-2 text-blue-600 font-bold">
-                      <Phone size={16} />
-                      <span className="text-sm">{phone}</span>
+                      <Phone size={18} className="fill-blue-600/10" />
+                      <span className="text-base tracking-wide">{phone}</span>
                     </div>
                   )}
                 </div>
@@ -302,22 +264,21 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ selectedCoop, allCoops, onSel
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center text-center">
-                    <label className="text-[9px] font-black text-slate-400 uppercase mb-1">Genre</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase mb-1.5">Genre</label>
                     <p className="text-[11px] font-bold text-slate-700">{formatGenre(p?.Genre)}</p>
                   </div>
                   <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center text-center">
-                    <label className="text-[9px] font-black text-slate-400 uppercase mb-1">Naissance</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase mb-1.5">Naissance</label>
                     <p className="text-[11px] font-bold text-slate-700">{birthDate}</p>
                   </div>
                   <div className="bg-slate-50 p-3 rounded-2xl flex flex-col items-center text-center">
-                    <label className="text-[9px] font-black text-slate-400 uppercase mb-1">Scolarité</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase mb-1.5">Scolarité</label>
                     <p className="text-[11px] font-bold text-slate-700">{schoolLevel}</p>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* 3. Indicateurs de Performance */}
             <section className="space-y-4">
               <div className="flex items-center gap-3 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
                 <CheckCircle2 size={16} className="text-green-600" />
@@ -325,23 +286,23 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ selectedCoop, allCoops, onSel
                 <div className="flex-1 h-px bg-slate-100"></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-green-50/40 p-5 rounded-[1.5rem] border border-green-100 flex flex-col">
-                  <span className="text-[10px] font-black text-green-700 uppercase mb-2">Total Adhérents</span>
+                <div className="bg-[#f0fdf4] p-5 rounded-[1.5rem] border border-[#dcfce7] flex flex-col">
+                  <span className="text-[10px] font-black text-[#15803d] uppercase mb-2">Total Adhérents</span>
                   <span className="text-3xl font-black text-slate-800 leading-none">{adherents}</span>
                 </div>
-                <div className="bg-blue-50/40 p-5 rounded-[1.5rem] border border-blue-100 flex flex-col">
-                  <span className="text-[10px] font-black text-blue-700 uppercase mb-2">Capital Social</span>
+                <div className="bg-[#eff6ff] p-5 rounded-[1.5rem] border border-[#dbeafe] flex flex-col">
+                  <span className="text-[10px] font-black text-[#1d4ed8] uppercase mb-2">Capital Social</span>
                   <div className="flex items-end gap-1.5">
                     <span className="text-2xl font-black text-slate-800 leading-none">{capital}</span>
-                    <span className="text-[11px] font-black text-blue-600/60 mb-0.5">DH</span>
+                    <span className="text-[11px] font-black text-[#1d4ed8]/60 mb-0.5">DH</span>
                   </div>
                 </div>
-                <div className="bg-pink-50/40 p-5 rounded-[1.5rem] border border-pink-100 flex flex-col">
-                  <span className="text-[10px] font-black text-pink-700 uppercase mb-2">Femmes</span>
+                <div className="bg-[#fdf2f8] p-5 rounded-[1.5rem] border border-[#fce7f3] flex flex-col">
+                  <span className="text-[10px] font-black text-[#be185d] uppercase mb-2">Femmes</span>
                   <span className="text-3xl font-black text-slate-800 leading-none">{femmes}</span>
                 </div>
-                <div className="bg-orange-50/40 p-5 rounded-[1.5rem] border border-orange-100 flex flex-col">
-                  <span className="text-[10px] font-black text-orange-700 uppercase mb-2">Jeunes (-35 ans)</span>
+                <div className="bg-[#fff7ed] p-5 rounded-[1.5rem] border border-[#ffedd5] flex flex-col">
+                  <span className="text-[10px] font-black text-[#c2410c] uppercase mb-2">Jeunes (-35 ans)</span>
                   <span className="text-3xl font-black text-slate-800 leading-none">{jeunes}</span>
                 </div>
               </div>

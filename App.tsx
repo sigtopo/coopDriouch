@@ -4,14 +4,12 @@ import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { 
   Loader2,
-  Menu,
-  BrainCircuit
+  Menu
 } from 'lucide-react';
 import { CooperativeGeoJSON, CooperativeFeature } from './types.ts';
 import Sidebar from './components/Sidebar.tsx';
 import DetailPanel from './components/DetailPanel.tsx';
 import Header from './components/Header.tsx';
-import StatsOverview from './components/StatsOverview.tsx';
 import AIInsights from './components/AIInsights.tsx';
 
 const GEOJSON_URL = "https://raw.githubusercontent.com/sigtopo/coop_driouch/refs/heads/main/CooperativesDriouch.geojson";
@@ -276,18 +274,6 @@ const App: React.FC = () => {
             )}
             <MapFlyTo feature={selectedCoop} />
           </MapContainer>
-
-          {/* Floating UI Elements */}
-          <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-3 pointer-events-none">
-            {data && <StatsOverview data={{ type: "FeatureCollection", features: filteredFeatures } as any} />}
-            <button 
-              onClick={() => setAIModalOpen(true)}
-              className="pointer-events-auto flex items-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-2xl shadow-xl hover:bg-indigo-700 transition-all hover:scale-105 active:scale-95 group"
-            >
-              <BrainCircuit size={20} className="group-hover:animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-wider">Analyse IA</span>
-            </button>
-          </div>
 
           <DetailPanel 
             selectedCoop={selectedCoop} 
