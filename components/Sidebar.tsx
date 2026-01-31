@@ -154,31 +154,32 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="font-medium">Aucun résultat trouvé</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 shadow-inner">
             {features.map((f, idx) => (
               <button
                 key={idx}
                 onClick={() => onSelect(f)}
-                className={`w-full text-left p-5 hover:bg-blue-50 transition border-l-4 group
-                  ${selectedId === f.properties.id ? 'bg-blue-50 border-blue-700' : 'border-transparent'}`}
+                className={`w-full text-left p-4 hover:bg-gray-50 transition border-l-4 group
+                  ${selectedId === f.properties.id ? 'bg-blue-50/50 border-blue-600' : 'border-transparent'}`}
               >
-                {/* اسم التعاونية - يبقى كما هو */}
-                <div className="font-extrabold text-gray-900 group-hover:text-blue-900 transition-colors mb-1.5 text-sm leading-snug">
+                {/* اسم التعاونية - عريض وواضح */}
+                <div className="font-extrabold text-gray-900 group-hover:text-blue-900 transition-colors mb-2 text-[13px] leading-tight uppercase">
                   {f.properties['Nom de coopérative'] || f.properties.Nom_Coop || "Coopérative Sans Nom"}
                 </div>
 
-                <div className="space-y-1.5">
-                  {/* الجماعة - لون أحمر غامق مع أيقونة الموقع */}
-                  <div className="flex items-center gap-2 text-[11px] text-red-900 font-black tracking-tight">
-                    <MapPin size={12} className="text-red-900 shrink-0" />
-                    <span className="truncate uppercase">{f.properties.Commune || "Driouch"}</span>
+                {/* الجماعة واسم الرئيس - في سطر واحد بخط صغير وغير سميك */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  {/* الجماعة - أحمر غامق */}
+                  <div className="flex items-center gap-1.5 text-[10px] text-red-900 font-medium">
+                    <MapPin size={11} className="text-red-900 shrink-0" />
+                    <span className="truncate uppercase tracking-tight">{f.properties.Commune || "Driouch"}</span>
                   </div>
 
-                  {/* اسم الرئيس - لون أزرق مع أيقونة الملف الشخصي */}
-                  <div className="flex items-center gap-2 text-[11px] text-blue-700 font-black tracking-tight">
-                    <User size={12} className="text-blue-700 shrink-0" />
-                    <span className="truncate">
-                      {f.properties["Nom et prénom président/gestionnaire"] || "Président non spécifié"}
+                  {/* اسم الرئيس - أزرق */}
+                  <div className="flex items-center gap-1.5 text-[10px] text-blue-700 font-medium">
+                    <User size={11} className="text-blue-700 shrink-0" />
+                    <span className="truncate italic">
+                      {f.properties["Nom et prénom président/gestionnaire"] || "N/A"}
                     </span>
                   </div>
                 </div>
@@ -188,8 +189,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      <div className="p-4 bg-gray-50 border-t border-gray-200 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest shrink-0">
-        {features.length} Coopératives affichées
+      <div className="p-3 bg-gray-50 border-t border-gray-200 text-center text-[9px] text-gray-400 font-black uppercase tracking-widest shrink-0">
+        {features.length} Coopératives répertoriées
       </div>
     </aside>
   );
