@@ -1,14 +1,26 @@
 
 import React from 'react';
-import { Menu, Layers, Map as MapIcon, Globe } from 'lucide-react';
+import { Menu, Layers, Map as MapIcon, Globe, Clock, Loader2 } from 'lucide-react';
 
 interface HeaderProps {
   onMenuClick: () => void;
   mapLayer: 'standard' | 'satellite';
   setMapLayer: (layer: 'standard' | 'satellite') => void;
+  lastUpdated?: Date;
+  refreshing?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuClick, mapLayer, setMapLayer }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  onMenuClick, 
+  mapLayer, 
+  setMapLayer, 
+  lastUpdated,
+  refreshing 
+}) => {
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <header className="h-20 md:h-16 flex items-center justify-between px-4 md:px-6 bg-white border-b border-slate-200 z-[2000] shrink-0 shadow-sm">
       <div className="flex items-center gap-3 md:gap-5">
@@ -30,9 +42,21 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, mapLayer, setMapLayer }) =
             <h1 className="text-sm md:text-lg font-bold text-slate-900 tracking-tight leading-tight">
               Observatoire des Coopératives <span className="text-slate-500 block md:inline">Driouch</span>
             </h1>
-            <p className="text-[9px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] -mt-0.5">
-              Plateforme Institutionnelle
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-[9px] md:text-[10px] font-semibold text-slate-400 uppercase tracking-[0.2em] -mt-0.5 whitespace-nowrap">
+                Plateforme Institutionnelle
+              </p>
+              {lastUpdated && (
+                <div className="hidden sm:flex items-center gap-1.5 text-[8px] font-bold text-slate-400 uppercase tracking-widest border-l border-slate-200 pl-3">
+                  {refreshing ? (
+                    <Loader2 size={10} className="animate-spin text-blue-600" />
+                  ) : (
+                    <Clock size={10} />
+                  )}
+                  <span>Mise à jour: {formatTime(lastUpdated)}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

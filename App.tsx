@@ -5,7 +5,8 @@ import L from 'leaflet';
 import { 
   Loader2,
   Menu,
-  Home
+  Home,
+  RefreshCcw
 } from 'lucide-react';
 import { CooperativeGeoJSON, CooperativeFeature } from './types.ts';
 import Sidebar from './components/Sidebar.tsx';
@@ -37,7 +38,6 @@ const MapController: React.FC<{
     }, 300);
   }, [isSidebarOpen, map]);
 
-  // الضبط الأولي (Home View) عند توفر البيانات أو الضغط على زر Home
   useEffect(() => {
     if (provinceBounds) {
       const geoJsonLayer = L.geoJSON(provinceBounds);
@@ -68,6 +68,8 @@ const App: React.FC = () => {
   const [communesBounds, setCommunesBounds] = useState<any>(null);
   const [provinceBounds, setProvinceBounds] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [selectedCoop, setSelectedCoop] = useState<CooperativeFeature | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
@@ -80,39 +82,58 @@ const App: React.FC = () => {
   const [filterSecteur, setFilterSecteur] = useState("");
   const [filterNiveau, setFilterNiveau] = useState("");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [resCoops, resCommunes, resProvince] = await Promise.all([
-          fetch(GEOJSON_URL),
-          fetch(COMMUNES_BOUNDS_URL).catch(() => null),
-          fetch(PROVINCE_BOUNDS_URL).catch(() => null)
-        ]);
+  const fetchData = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    else setRefreshing(true);
+    
+    try {
+      const timestamp = new Date().getTime();
+      const [resCoops, resCommunes, resProvince] = await Promise.all([
+        fetch(`${GEOJSON_URL}?t=${timestamp}`),
+        fetch(`${COMMUNES_BOUNDS_URL}?t=${timestamp}`).catch(() => null),
+        fetch(`${PROVINCE_BOUNDS_URL}?t=${timestamp}`).catch(() => null)
+      ]);
 
-        if (resCoops.ok) {
-          const json = await resCoops.json();
-          json.features = json.features.map((f: any, i: number) => ({
-            ...f,
-            properties: { ...f.properties, id: f.properties.id || `coop-${i}` }
-          }));
-          setData(json);
-        }
+      if (resCoops.ok) {
+        const json = await resCoops.json();
+        json.features = json.features.map((f: any, i: number) => ({
+          ...f,
+          properties: { ...f.properties, id: f.properties.id || `coop-${i}` }
+        }));
+        setData(json);
+        setLastUpdated(new Date());
+      }
 
+      if (isInitial) {
         if (resCommunes?.ok) setCommunesBounds(await resCommunes.json());
         if (resProvince?.ok) setProvinceBounds(await resProvince.json());
-
-      } catch (err: any) {
-        console.error("Erreur de chargement:", err);
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchData();
+    } catch (err: any) {
+      console.error("Erreur de chargement:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData(true);
+    
+    // التحديث التلقائي كل 5 دقائق
+    const interval = setInterval(() => {
+      fetchData(false);
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   const handleHomeClick = () => {
     setSelectedCoop(null);
     setResetTrigger(prev => prev + 1);
+  };
+
+  const handleManualRefresh = () => {
+    fetchData(false);
   };
 
   const filterOptions = useMemo(() => {
@@ -232,6 +253,8 @@ const App: React.FC = () => {
         onMenuClick={() => setSidebarOpen(true)} 
         mapLayer={mapLayer}
         setMapLayer={setMapLayer}
+        lastUpdated={lastUpdated}
+        refreshing={refreshing}
       />
 
       <div className="flex flex-1 overflow-hidden relative">
@@ -352,6 +375,15 @@ const App: React.FC = () => {
               title="Vue d'ensemble (Home)"
             >
               <Home size={22} className="group-hover:scale-110 transition-transform" />
+            </button>
+
+            <button 
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              className="p-3 bg-white rounded-xl shadow-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all active:scale-95 group disabled:opacity-50"
+              title="Rafraîchir les données"
+            >
+              <RefreshCcw size={22} className={`${refreshing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-700`} />
             </button>
           </div>
         </main>
