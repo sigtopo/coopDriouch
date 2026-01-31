@@ -39,7 +39,7 @@ const App: React.FC = () => {
   const [selectedCoop, setSelectedCoop] = useState<CooperativeFeature | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
-  const [mapLayer, setMapLayer] = useState<'standard' | 'satellite'>('standard');
+  const [mapLayer, setMapLayer] = useState<'standard' | 'satellite'>('satellite');
   
   const [filterCommune, setFilterCommune] = useState("");
   const [filterGenre, setFilterGenre] = useState("");
