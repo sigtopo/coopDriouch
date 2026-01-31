@@ -9,7 +9,6 @@ import {
 import { CooperativeGeoJSON, CooperativeFeature } from './types';
 import Sidebar from './components/Sidebar';
 import DetailPanel from './components/DetailPanel';
-import StatsOverview from './components/StatsOverview';
 
 // Fix for default Leaflet marker icons
 // @ts-ignore
@@ -71,33 +70,6 @@ const App: React.FC = () => {
     });
   }, [data, searchTerm]);
 
-  const onEachFeature = (feature: CooperativeFeature, layer: L.Layer) => {
-    layer.on({
-      click: (e) => {
-        L.DomEvent.stopPropagation(e);
-        setSelectedCoop(feature);
-      },
-      mouseover: (e) => {
-        const layer = e.target;
-        layer.setStyle({
-          weight: 5,
-          color: '#22c55e',
-          dashArray: '',
-          fillOpacity: 0.7
-        });
-      },
-      mouseout: (e) => {
-        const layer = e.target;
-        layer.setStyle({
-          weight: 2,
-          color: '#16a34a',
-          dashArray: '3',
-          fillOpacity: 0.4
-        });
-      }
-    });
-  };
-
   const geoJsonStyle = {
     fillColor: '#16a34a',
     weight: 2,
@@ -107,11 +79,37 @@ const App: React.FC = () => {
     fillOpacity: 0.4
   };
 
+  const onEachFeature = (feature: CooperativeFeature, layer: L.Layer) => {
+    layer.on({
+      click: (e) => {
+        L.DomEvent.stopPropagation(e);
+        setSelectedCoop(feature);
+      },
+      mouseover: (e) => {
+        const target = e.target;
+        if (target.setStyle) {
+          target.setStyle({
+            weight: 5,
+            color: '#22c55e',
+            dashArray: '',
+            fillOpacity: 0.7
+          });
+        }
+      },
+      mouseout: (e) => {
+        const target = e.target;
+        if (target.setStyle) {
+          target.setStyle(geoJsonStyle);
+        }
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-green-50 text-green-800">
         <Loader2 className="w-12 h-12 animate-spin mb-4" />
-        <h2 className="text-2xl font-bold">Chargement de la carte des coopératives...</h2>
+        <h2 className="text-2xl font-bold font-sans">Chargement de la carte...</h2>
       </div>
     );
   }
@@ -119,8 +117,8 @@ const App: React.FC = () => {
   if (error) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-red-50 text-red-800 p-4">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold mb-2">Erreur Système</h2>
+        <div className="text-center font-sans">
+          <h2 className="text-3xl font-bold mb-2">Erreur</h2>
           <p className="text-lg">{error}</p>
           <button 
             onClick={() => window.location.reload()}
@@ -135,7 +133,6 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen w-screen flex overflow-hidden font-sans">
-      {/* Sidebar on the LEFT */}
       <Sidebar 
         isOpen={isSidebarOpen} 
         setOpen={setSidebarOpen}
@@ -146,12 +143,7 @@ const App: React.FC = () => {
         onSelect={(f) => setSelectedCoop(f)}
       />
 
-      {/* Main Map Area */}
       <main className="flex-1 relative">
-        <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none">
-          <StatsOverview data={data!} />
-        </div>
-
         <MapContainer 
           center={[34.98, -3.38]} 
           zoom={10} 
@@ -175,7 +167,6 @@ const App: React.FC = () => {
           <MapFlyTo feature={selectedCoop} />
         </MapContainer>
 
-        {/* Selected Detail Panel */}
         {selectedCoop && (
           <DetailPanel 
             coop={selectedCoop} 
@@ -183,7 +174,6 @@ const App: React.FC = () => {
           />
         )}
 
-        {/* Floating Toggle if Sidebar is closed */}
         {!isSidebarOpen && (
           <button 
             onClick={() => setSidebarOpen(true)}
