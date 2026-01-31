@@ -42,6 +42,12 @@ const App: React.FC = () => {
   const [selectedCoop, setSelectedCoop] = useState<CooperativeFeature | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Nouveaux filtres
+  const [filterCommune, setFilterCommune] = useState("");
+  const [filterGenre, setFilterGenre] = useState("");
+  const [filterSecteur, setFilterSecteur] = useState("");
+  const [filterNiveau, setFilterNiveau] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,16 +65,51 @@ const App: React.FC = () => {
     fetchData();
   }, []);
 
+  // Extraire les options uniques pour les filtres
+  const filterOptions = useMemo(() => {
+    if (!data) return { communes: [], genres: [], secteurs: [], niveaux: [] };
+    
+    const communes = new Set<string>();
+    const genres = new Set<string>();
+    const secteurs = new Set<string>();
+    const niveaux = new Set<string>();
+
+    data.features.forEach(f => {
+      const p = f.properties;
+      if (p.Commune) communes.add(p.Commune);
+      if (p.Genre) genres.add(p.Genre);
+      if (p["Filière d'activité"]) secteurs.add(p["Filière d'activité"]);
+      if (p["Niveau scolaire"]) niveaux.add(p["Niveau scolaire"]);
+    });
+
+    return {
+      communes: Array.from(communes).sort(),
+      genres: Array.from(genres).sort(),
+      secteurs: Array.from(secteurs).sort(),
+      niveaux: Array.from(niveaux).sort()
+    };
+  }, [data]);
+
   const filteredFeatures = useMemo(() => {
     if (!data) return [];
     return data.features.filter(f => {
-      const props = f.properties;
+      const p = f.properties;
+      
+      // Recherche textuelle
       const searchStr = searchTerm.toLowerCase();
-      return Object.values(props).some(val => 
+      const matchesSearch = Object.values(p).some(val => 
         String(val).toLowerCase().includes(searchStr)
       );
+
+      // Filtres sélectifs
+      const matchesCommune = !filterCommune || p.Commune === filterCommune;
+      const matchesGenre = !filterGenre || p.Genre === filterGenre;
+      const matchesSecteur = !filterSecteur || p["Filière d'activité"] === filterSecteur;
+      const matchesNiveau = !filterNiveau || p["Niveau scolaire"] === filterNiveau;
+
+      return matchesSearch && matchesCommune && matchesGenre && matchesSecteur && matchesNiveau;
     });
-  }, [data, searchTerm]);
+  }, [data, searchTerm, filterCommune, filterGenre, filterSecteur, filterNiveau]);
 
   const geoJsonStyle = {
     fillColor: '#16a34a',
@@ -141,6 +182,16 @@ const App: React.FC = () => {
         features={filteredFeatures}
         selectedId={selectedCoop?.properties.id}
         onSelect={(f) => setSelectedCoop(f)}
+        // Props des filtres
+        filterCommune={filterCommune}
+        setFilterCommune={setFilterCommune}
+        filterGenre={filterGenre}
+        setFilterGenre={setFilterGenre}
+        filterSecteur={filterSecteur}
+        setFilterSecteur={setFilterSecteur}
+        filterNiveau={filterNiveau}
+        setFilterNiveau={setFilterNiveau}
+        options={filterOptions}
       />
 
       <main className="flex-1 relative">
@@ -154,9 +205,10 @@ const App: React.FC = () => {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {data && (
+          {filteredFeatures.length > 0 && (
             <GeoJSON 
-              data={data as any} 
+              key={JSON.stringify(filteredFeatures.length + filterCommune + filterGenre + filterSecteur + filterNiveau)}
+              data={{ type: "FeatureCollection", features: filteredFeatures } as any} 
               onEachFeature={onEachFeature}
               style={geoJsonStyle}
               pointToLayer={(feature, latlng) => {
